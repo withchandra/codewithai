@@ -16,6 +16,8 @@ Fitur Utama
 - Autentikasi: Google One Tap + fallback popup, passwordless email link.
 - Delete task dengan ikon Font Awesome dan dialog konfirmasi minimalis.
 - Soft-delete: saat menghapus, task dipindah ke koleksi `deleted_tasks` dengan seluruh field tetap ada, plus `deletedAt`.
+- Halaman Trash: melihat task yang dihapus secara realtime, terproteksi guard login, tombol Logout tersedia.
+- Badge versi kecil ditampilkan di header halaman.
 
 Tech Stack & Struktur
 ---------------------
@@ -42,14 +44,16 @@ Catatan Versi
 
 Changelog
 ---------
+- 0.3.0
+  - Implementasi soft-delete: pindahkan dokumen ke `deleted_tasks` sebelum dihapus dari `tasks`.
+  - Tambah halaman `trash.html` untuk melihat task yang dihapus.
+  - Proteksi akses Trash dengan guard login dan tombol Logout.
+  - Dokumentasi Hosting diperbarui.
 - 0.2.0
   - Ganti ikon delete ke Font Awesome (`fa-solid fa-trash`) via CDN.
   - Tambah modal konfirmasi Tailwind sebelum penghapusan task.
   - Tampilkan badge versi di header (login & kanban).
   - Perapihan kecil dan pembersihan kode tidak terpakai.
-- 0.3.0
-  - Implementasi soft-delete: pindahkan dokumen ke `deleted_tasks` sebelum dihapus dari `tasks`.
-  - Tambah halaman `trash.html` untuk melihat task yang dihapus.
 - 0.1.0
   - Rilis awal: kanban 3 kolom dengan Firestore realtime.
   - Autentikasi Google One Tap dan email link (passwordless).

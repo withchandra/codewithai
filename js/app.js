@@ -9,7 +9,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
 
 // Simple application versioning
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.3.0';
 window.__APP_VERSION__ = APP_VERSION;
 
 const STATUS = {
