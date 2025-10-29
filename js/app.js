@@ -1,7 +1,7 @@
 // App entry untuk login.html dan kanban.html
 import { db, auth, serverTimestamp, GoogleAuthProvider } from './firebase.js';
 import {
-  collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy
+  collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy
 } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
 import {
   signInWithPopup, onAuthStateChanged, signOut, signInWithCredential,
@@ -145,13 +145,12 @@ function subscribeTasks() {
 
 function renderTaskCard(id, data) {
   const card = document.createElement('article');
-  card.className = `rounded-md border p-3 ${colorByStatus(data.status)} cursor-move`;
+  card.className = `relative rounded-md border p-3 pt-6 pr-8 ${colorByStatus(data.status)} cursor-move`;
   card.setAttribute('draggable', 'true');
   card.dataset.id = id;
   card.innerHTML = `
     <div class="flex items-center justify-between">
       <h3 class="text-sm font-medium">${escapeHTML(data.title || '')}</h3>
-      <span class="text-[11px] text-neutral-500">${STATUS[data.status] || ''}</span>
     </div>
     ${data.content ? `<p class="mt-1 text-xs text-neutral-700 leading-5">${escapeHTML(data.content)}</p>` : ''}
     ${data.deadline ? `<p class="mt-2 text-[11px] text-neutral-600">Due: ${formatDate(data.deadline)}</p>` : ''}
@@ -161,7 +160,79 @@ function renderTaskCard(id, data) {
     e.dataTransfer.setData('text/plain', id);
   });
 
+  // Delete button (top-right), minimalist SVG icon
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.setAttribute('aria-label', 'Delete task');
+  delBtn.className = 'absolute top-2 right-2 p-1 rounded hover:bg-neutral-200 text-red-600 hover:text-red-700';
+  // Font Awesome trash icon (tanpa SVG) dengan ukuran kecil
+  delBtn.innerHTML = `<i class="fa-solid fa-trash text-sm" aria-hidden="true"></i>`;
+  delBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const confirmed = await showConfirmDialog({
+      title: 'Hapus task?',
+      message: `Task \"${escapeHTML(data.title || 'tanpa judul')}\" akan dihapus.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
+    try {
+      await deleteDoc(doc(db, 'tasks', id));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus task');
+    }
+  });
+  card.appendChild(delBtn);
+
+  // Status label: di bawah ikon delete, tetap rata kanan
+  const statusLabel = document.createElement('span');
+  statusLabel.className = 'absolute right-2 top-8 text-[11px] text-neutral-500';
+  statusLabel.textContent = STATUS[data.status] || '';
+  card.appendChild(statusLabel);
+
   return card;
+}
+
+// Minimal Tailwind confirm dialog (Promise<boolean>)
+function showConfirmDialog({ title = 'Confirm', message = '', confirmText = 'OK', cancelText = 'Cancel' } = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 backdrop-blur-[1px]';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    const box = document.createElement('div');
+    box.className = 'w-[92%] max-w-sm rounded-lg border border-neutral-200 bg-white shadow-lg p-4';
+    box.innerHTML = `
+      <div class="flex items-start justify-between">
+        <h3 class="text-sm font-medium text-neutral-900">${escapeHTML(title)}</h3>
+      </div>
+      ${message ? `<p class="mt-2 text-xs text-neutral-700">${escapeHTML(message)}</p>` : ''}
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button data-cancel class="text-sm px-3 py-2 rounded border border-neutral-300 hover:bg-neutral-100">${escapeHTML(cancelText)}</button>
+        <button data-confirm class="text-sm px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">${escapeHTML(confirmText)}</button>
+      </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      window.removeEventListener('keydown', onKeyDown);
+      overlay.remove();
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { cleanup(); resolve(false); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) { cleanup(); resolve(false); }
+    });
+    box.querySelector('[data-cancel]')?.addEventListener('click', () => { cleanup(); resolve(false); });
+    box.querySelector('[data-confirm]')?.addEventListener('click', () => { cleanup(); resolve(true); });
+  });
 }
 
 function setupDnDColumns() {
