@@ -1,7 +1,7 @@
 // App entry untuk login.html dan kanban.html
 import { db, auth, serverTimestamp, GoogleAuthProvider } from './firebase.js';
 import {
-  collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy
+  collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc
 } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
 import {
   signInWithPopup, onAuthStateChanged, signOut, signInWithCredential,
@@ -183,6 +183,9 @@ function renderTaskCard(id, data) {
     });
     if (!confirmed) return;
     try {
+      // Soft-delete: salin dokumen ke deleted_tasks, kemudian hapus dari tasks
+      const deletedRef = doc(collection(db, 'deleted_tasks'), id);
+      await setDoc(deletedRef, { ...data, deletedAt: serverTimestamp() });
       await deleteDoc(doc(db, 'tasks', id));
     } catch (err) {
       console.error(err);
@@ -288,6 +291,7 @@ function formatDate(val) {
 const page = document.body.getAttribute('data-page');
 if (page === 'login') initLoginPage();
 if (page === 'kanban') initKanbanPage();
+if (page === 'trash') initTrashPage();
 function initGoogleOneTap() {
   const clientId = (window.firebaseConfig && window.firebaseConfig.googleClientId) || '';
   if (!clientId) {
@@ -368,4 +372,45 @@ function completeEmailLinkIfPresent() {
       });
     }
   }
+}
+
+// ---------------- Trash Page -----------------
+function initTrashPage() {
+  injectVersionBadge();
+  const logoutBtn = $('#logoutBtn');
+  if (logoutBtn) logoutBtn.addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) window.location.href = 'login.html';
+  });
+
+  subscribeDeletedTasks();
+}
+
+function subscribeDeletedTasks() {
+  const q = query(collection(db, 'deleted_tasks'), orderBy('deletedAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    const list = document.querySelector('[data-deleted-list]');
+    if (list) list.innerHTML = '';
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      const card = renderDeletedTaskCard(docSnap.id, data);
+      list?.appendChild(card);
+    });
+  });
+}
+
+function renderDeletedTaskCard(id, data) {
+  const card = document.createElement('article');
+  card.className = 'relative rounded-md border border-neutral-200 bg-neutral-50 p-3 pr-8';
+  card.innerHTML = `
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-medium text-neutral-800">${escapeHTML(data.title || '')}</h3>
+    </div>
+    ${data.content ? `<p class="mt-1 text-xs text-neutral-700 leading-5">${escapeHTML(data.content)}</p>` : ''}
+    ${data.deadline ? `<p class="mt-2 text-[11px] text-neutral-600">Due: ${formatDate(data.deadline)}</p>` : ''}
+    <p class="mt-2 text-[11px] text-neutral-500">Original status: ${STATUS[data.status] || ''}</p>
+    ${data.deletedAt ? `<p class="mt-1 text-[11px] text-neutral-500">Deleted: ${formatDate(data.deletedAt)}</p>` : ''}
+  `;
+  return card;
 }

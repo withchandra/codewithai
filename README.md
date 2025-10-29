@@ -15,6 +15,7 @@ Fitur Utama
 - Realtime update dari Firestore (onSnapshot).
 - Autentikasi: Google One Tap + fallback popup, passwordless email link.
 - Delete task dengan ikon Font Awesome dan dialog konfirmasi minimalis.
+- Soft-delete: saat menghapus, task dipindah ke koleksi `deleted_tasks` dengan seluruh field tetap ada, plus `deletedAt`.
 
 Tech Stack & Struktur
 ---------------------
@@ -31,6 +32,7 @@ c:\Workspace\codewithai
     ├── app.js         # logic auth, kanban, Firestore
     ├── firebase.js    # init Firebase (app, db, auth)
     └── firebase-config.js # konfigurasi project & googleClientId
+    └── trash.html     # halaman melihat task yang dihapus (deleted_tasks)
 ```
 
 Catatan Versi
@@ -45,6 +47,9 @@ Changelog
   - Tambah modal konfirmasi Tailwind sebelum penghapusan task.
   - Tampilkan badge versi di header (login & kanban).
   - Perapihan kecil dan pembersihan kode tidak terpakai.
+- 0.3.0
+  - Implementasi soft-delete: pindahkan dokumen ke `deleted_tasks` sebelum dihapus dari `tasks`.
+  - Tambah halaman `trash.html` untuk melihat task yang dihapus.
 - 0.1.0
   - Rilis awal: kanban 3 kolom dengan Firestore realtime.
   - Autentikasi Google One Tap dan email link (passwordless).
