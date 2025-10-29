@@ -155,8 +155,8 @@ function renderTaskCard(id, data) {
   card.setAttribute('draggable', 'true');
   card.dataset.id = id;
   card.innerHTML = `
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-medium">${escapeHTML(data.title || '')}</h3>
+    <div class="w-full">
+      <h2 class="text-base font-semibold w-full">${escapeHTML(data.title || '')}</h2>
     </div>
     ${data.content ? `<p class="mt-1 text-xs text-neutral-700 leading-5">${escapeHTML(data.content)}</p>` : ''}
     ${data.deadline ? `<p class="mt-2 text-[11px] text-neutral-600">Due: ${formatDate(data.deadline)}</p>` : ''}

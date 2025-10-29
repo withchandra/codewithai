@@ -137,9 +137,20 @@ Troubleshooting
 
 Deployment
 ----------
-- Bisa dipublikasikan ke hosting statis (mis. Firebase Hosting):
-  - `firebase init hosting`
-  - `firebase deploy`
+- Proyek ini sudah disiapkan untuk Firebase Hosting (`.firebaserc` dan `firebase.json`).
+- Langkah-langkah deployment:
+  - Instal CLI: `npm i -g firebase-tools` (atau gunakan `npx firebase-tools ...` di bawah).
+  - Login: `firebase login`
+  - Pastikan project: `firebase use learn-with-ai-4f0d7` (sudah terpasang di `.firebaserc`).
+  - Deploy: `firebase deploy --only hosting`
+
+Catatan:
+- Jika ingin tanpa instal global: 
+  - `npx firebase-tools login`
+  - `npx firebase-tools use learn-with-ai-4f0d7`
+  - `npx firebase-tools deploy --only hosting`
+- Domain default Hosting (web.app dan firebaseapp.com) sudah terlihat di Firebase Console; pastikan keduanya ada di Authorized domains (Firebase Auth > Settings).
+- Alur email link memakai `actionCodeSettings.url = window.location.origin + '/login.html'` sehingga otomatis bekerja di domain produksi.
 
 Lisensi
 -------
