@@ -8,6 +8,10 @@ import {
   sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink
 } from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
 
+// Simple application versioning
+const APP_VERSION = '0.2.0';
+window.__APP_VERSION__ = APP_VERSION;
+
 const STATUS = {
   open: 'OPEN',
   in_progress: 'ON PROGRESS',
@@ -28,6 +32,7 @@ function $all(sel, root=document) { return Array.from(root.querySelectorAll(sel)
 
 // ---------------- Login Page -----------------
 async function initLoginPage() {
+  injectVersionBadge();
   // Fallback button login Google
   const provider = new GoogleAuthProvider();
   const btn = $('#googleSignIn');
@@ -57,6 +62,7 @@ async function initLoginPage() {
 
 // ---------------- Kanban Page -----------------
 function initKanbanPage() {
+  injectVersionBadge();
   const logoutBtn = $('#logoutBtn');
   if (!logoutBtn) return;
 
@@ -233,6 +239,18 @@ function showConfirmDialog({ title = 'Confirm', message = '', confirmText = 'OK'
     box.querySelector('[data-cancel]')?.addEventListener('click', () => { cleanup(); resolve(false); });
     box.querySelector('[data-confirm]')?.addEventListener('click', () => { cleanup(); resolve(true); });
   });
+}
+
+// Inject small version badge in header's right block
+function injectVersionBadge() {
+  try {
+    const header = document.querySelector('header');
+    const right = header?.lastElementChild || header;
+    const badge = document.createElement('span');
+    badge.className = 'text-[11px] text-neutral-500';
+    badge.textContent = `v${APP_VERSION}`;
+    right.appendChild(badge);
+  } catch {}
 }
 
 function setupDnDColumns() {

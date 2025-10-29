@@ -14,6 +14,7 @@ Fitur Utama
 - Drag & drop antar kolom; warna kartu mengikuti status.
 - Realtime update dari Firestore (onSnapshot).
 - Autentikasi: Google One Tap + fallback popup, passwordless email link.
+- Delete task dengan ikon Font Awesome dan dialog konfirmasi minimalis.
 
 Tech Stack & Struktur
 ---------------------
@@ -31,6 +32,22 @@ c:\Workspace\codewithai
     ├── firebase.js    # init Firebase (app, db, auth)
     └── firebase-config.js # konfigurasi project & googleClientId
 ```
+
+Catatan Versi
+-------------
+- Variabel versi aplikasi: `APP_VERSION` tersimpan di `js/app.js` dan ditampilkan sebagai badge kecil di header halaman `login.html` dan `kanban.html`.
+- Untuk menaikkan versi, ubah nilai `APP_VERSION` dan deploy ulang.
+
+Changelog
+---------
+- 0.2.0
+  - Ganti ikon delete ke Font Awesome (`fa-solid fa-trash`) via CDN.
+  - Tambah modal konfirmasi Tailwind sebelum penghapusan task.
+  - Tampilkan badge versi di header (login & kanban).
+  - Perapihan kecil dan pembersihan kode tidak terpakai.
+- 0.1.0
+  - Rilis awal: kanban 3 kolom dengan Firestore realtime.
+  - Autentikasi Google One Tap dan email link (passwordless).
 
 Prasyarat
 ---------
