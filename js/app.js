@@ -1,0 +1,282 @@
+// App entry untuk login.html dan kanban.html
+import { db, auth, serverTimestamp, GoogleAuthProvider } from './firebase.js';
+import {
+  collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy
+} from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js';
+import {
+  signInWithPopup, onAuthStateChanged, signOut, signInWithCredential,
+  sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink
+} from 'https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js';
+
+const STATUS = {
+  open: 'OPEN',
+  in_progress: 'ON PROGRESS',
+  done: 'DONE'
+};
+
+const colorByStatus = (s) => {
+  switch (s) {
+    case 'open': return 'border-sky-300 bg-sky-50';
+    case 'in_progress': return 'border-amber-300 bg-amber-50';
+    case 'done': return 'border-emerald-300 bg-emerald-50';
+    default: return 'border-neutral-200 bg-white';
+  }
+};
+
+function $(sel, root=document) { return root.querySelector(sel); }
+function $all(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
+
+// ---------------- Login Page -----------------
+async function initLoginPage() {
+  // Fallback button login Google
+  const provider = new GoogleAuthProvider();
+  const btn = $('#googleSignIn');
+  btn?.addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, provider);
+      window.location.href = 'kanban.html';
+    } catch (e) {
+      console.error(e);
+      alert('Login gagal');
+    }
+  });
+
+  // Google One Tap
+  initGoogleOneTap();
+
+  // Passwordless Email (send link)
+  initPasswordlessEmail();
+
+  // Jika membuka dari magic link, selesaikan login
+  completeEmailLinkIfPresent();
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) window.location.href = 'kanban.html';
+  });
+}
+
+// ---------------- Kanban Page -----------------
+function initKanbanPage() {
+  const logoutBtn = $('#logoutBtn');
+  if (!logoutBtn) return;
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) window.location.href = 'login.html';
+  });
+
+  logoutBtn.addEventListener('click', () => signOut(auth));
+
+  // Add Task buttons
+  $all('[data-add]').forEach(btn => {
+    btn.addEventListener('click', () => showInlineForm(btn.getAttribute('data-add')));
+  });
+
+  subscribeTasks();
+  setupDnDColumns();
+}
+
+function showInlineForm(status) {
+  const container = $(`[data-form="${status}"]`);
+  if (!container) return;
+  container.innerHTML = renderFormHTML(status);
+
+  const form = container.querySelector('form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = form.title.value.trim();
+    const content = form.content.value.trim();
+    const deadline = form.deadline.value ? new Date(form.deadline.value) : null;
+    if (!title) { alert('Title wajib diisi'); return; }
+    try {
+      await addDoc(collection(db, 'tasks'), {
+        title,
+        content,
+        deadline,
+        status,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      container.innerHTML = '';
+    } catch (e) {
+      console.error(e);
+      alert('Gagal membuat task');
+    }
+  });
+
+  // Cancel button
+  container.querySelector('[data-cancel]')?.addEventListener('click', () => {
+    container.innerHTML = '';
+  });
+}
+
+function renderFormHTML(status) {
+  const accent = status === 'open' ? 'focus:ring-sky-400' : status === 'in_progress' ? 'focus:ring-amber-400' : 'focus:ring-emerald-400';
+  return `
+    <form class="rounded-md border border-neutral-200 p-3 bg-neutral-50 space-y-2">
+      <input name="title" type="text" placeholder="Title" class="w-full text-sm px-3 py-2 rounded border border-neutral-300 focus:outline-none focus:ring ${accent}" />
+      <textarea name="content" rows="3" placeholder="Content" class="w-full text-sm px-3 py-2 rounded border border-neutral-300 focus:outline-none focus:ring ${accent}"></textarea>
+      <div class="flex items-center gap-2">
+        <input name="deadline" type="date" class="text-sm px-3 py-2 rounded border border-neutral-300 focus:outline-none focus:ring ${accent}" />
+        <div class="flex-1"></div>
+        <button type="button" data-cancel class="text-xs px-3 py-2 rounded border border-neutral-300 hover:bg-neutral-100">Cancel</button>
+        <button type="submit" class="text-xs px-3 py-2 rounded bg-neutral-900 text-white hover:bg-neutral-700">Save</button>
+      </div>
+    </form>
+  `;
+}
+
+function subscribeTasks() {
+  const q = query(collection(db, 'tasks'), orderBy('createdAt', 'asc'));
+  onSnapshot(q, (snap) => {
+    // clear lists
+    ['open','in_progress','done'].forEach(s => {
+      const list = $(`[data-list="${s}"]`);
+      if (list) list.innerHTML = '';
+    });
+
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      const card = renderTaskCard(docSnap.id, data);
+      const list = $(`[data-list="${data.status}"]`);
+      if (list) list.appendChild(card);
+    });
+  });
+}
+
+function renderTaskCard(id, data) {
+  const card = document.createElement('article');
+  card.className = `rounded-md border p-3 ${colorByStatus(data.status)} cursor-move`;
+  card.setAttribute('draggable', 'true');
+  card.dataset.id = id;
+  card.innerHTML = `
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-medium">${escapeHTML(data.title || '')}</h3>
+      <span class="text-[11px] text-neutral-500">${STATUS[data.status] || ''}</span>
+    </div>
+    ${data.content ? `<p class="mt-1 text-xs text-neutral-700 leading-5">${escapeHTML(data.content)}</p>` : ''}
+    ${data.deadline ? `<p class="mt-2 text-[11px] text-neutral-600">Due: ${formatDate(data.deadline)}</p>` : ''}
+  `;
+
+  card.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', id);
+  });
+
+  return card;
+}
+
+function setupDnDColumns() {
+  $all('section[data-status]').forEach(col => {
+    col.addEventListener('dragover', (e) => e.preventDefault());
+    col.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain');
+      const newStatus = col.getAttribute('data-status');
+      try {
+        await updateDoc(doc(db, 'tasks', id), { status: newStatus, updatedAt: serverTimestamp() });
+      } catch (err) {
+        console.error(err);
+        alert('Gagal memindahkan task');
+      }
+    });
+  });
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>"]+/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function formatDate(val) {
+  // Firestore bisa mengembalikan Timestamp, Date, atau string ISO
+  try {
+    let d;
+    if (val && typeof val.toDate === 'function') d = val.toDate();
+    else d = new Date(val);
+    return d.toLocaleDateString('id-ID');
+  } catch { return ''; }
+}
+
+// Bootstrapping per page
+const page = document.body.getAttribute('data-page');
+if (page === 'login') initLoginPage();
+if (page === 'kanban') initKanbanPage();
+function initGoogleOneTap() {
+  const clientId = (window.firebaseConfig && window.firebaseConfig.googleClientId) || '';
+  if (!clientId) {
+    console.warn('googleClientId belum diisi; One Tap akan dilewati dan gunakan popup sebagai fallback.');
+    return;
+  }
+  // Pastikan GIS sudah tersedia
+  const init = () => {
+    try {
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response) => {
+          try {
+            const cred = GoogleAuthProvider.credential(response.credential);
+            await signInWithCredential(auth, cred);
+            window.location.href = 'kanban.html';
+          } catch (err) {
+            console.error(err);
+            alert('Google One Tap gagal');
+          }
+        },
+        auto_select: true,
+        cancel_on_tap_outside: false,
+        context: 'signin'
+      });
+      window.google.accounts.id.prompt();
+    } catch (e) {
+      console.error('Gagal inisialisasi One Tap', e);
+    }
+  };
+  if (window.google && window.google.accounts && window.google.accounts.id) init();
+  else window.addEventListener('load', init);
+}
+
+function initPasswordlessEmail() {
+  const sendBtn = $('#sendEmailLink');
+  const emailInput = $('#emailInput');
+  sendBtn?.addEventListener('click', async () => {
+    const email = (emailInput?.value || '').trim();
+    if (!email) { alert('Email wajib diisi'); return; }
+    try {
+      const actionCodeSettings = {
+        url: `${window.location.origin}/login.html`,
+        handleCodeInApp: true
+        // Jika menggunakan Firebase Dynamic Links, tambahkan: dynamicLinkDomain: 'example.page.link'
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      localStorage.setItem('emailForSignIn', email);
+      $('#emailInfo').textContent = 'Link terkirim. Cek email Anda dan buka tautan dari perangkat ini.';
+    } catch (e) {
+      console.error(e);
+      alert('Gagal mengirim magic link');
+    }
+  });
+}
+
+function completeEmailLinkIfPresent() {
+  if (isSignInWithEmailLink(auth, window.location.href)) {
+    const savedEmail = localStorage.getItem('emailForSignIn');
+    if (savedEmail) {
+      signInWithEmailLink(auth, savedEmail, window.location.href)
+        .then(() => { localStorage.removeItem('emailForSignIn'); window.location.href = 'kanban.html'; })
+        .catch((e) => { console.error(e); alert('Gagal menyelesaikan login email'); });
+    } else {
+      // Tampilkan form untuk melengkapi email
+      const wrapper = $('#completeEmailContainer');
+      wrapper?.classList.remove('hidden');
+      $('#completeEmailBtn')?.addEventListener('click', async () => {
+        const email = ($('#completeEmailInput')?.value || '').trim();
+        if (!email) { alert('Email wajib diisi'); return; }
+        try {
+          await signInWithEmailLink(auth, email, window.location.href);
+          window.location.href = 'kanban.html';
+        } catch (e) {
+          console.error(e);
+          alert('Gagal menyelesaikan login email');
+        }
+      });
+    }
+  }
+}

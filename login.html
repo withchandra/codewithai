@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Trello Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Identity Services for One Tap -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body data-page="login" class="min-h-screen bg-neutral-50 text-neutral-800">
+    <header class="max-w-xl mx-auto px-4 py-6">
+      <h1 class="text-xl font-semibold">Login</h1>
+    </header>
+    <main class="max-w-xl mx-auto px-4">
+      <section class="rounded-lg border border-neutral-200 bg-white p-6 flex flex-col gap-4">
+        <p class="text-sm">Login cepat dengan Google One Tap atau email tanpa password.</p>
+        <!-- One Tap akan muncul otomatis; tombol berikut sebagai fallback -->
+        <button id="googleSignIn" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-sky-600 text-white text-sm hover:bg-sky-700">
+          <span>Login dengan Google (fallback)</span>
+        </button>
+
+        <div class="h-px bg-neutral-200"></div>
+        <div class="flex flex-col gap-2">
+          <label for="emailInput" class="text-sm">Login email (passwordless)</label>
+          <div class="flex gap-2">
+            <input id="emailInput" type="email" placeholder="email@domain.com" class="flex-1 text-sm px-3 py-2 rounded border border-neutral-300 focus:outline-none focus:ring focus:ring-sky-400" />
+            <button id="sendEmailLink" class="text-sm px-3 py-2 rounded bg-neutral-900 text-white hover:bg-neutral-700">Kirim magic link</button>
+          </div>
+          <p id="emailInfo" class="text-[12px] text-neutral-600">Kami akan mengirimkan tautan login ke email Anda.</p>
+        </div>
+
+        <!-- Form untuk melengkapi email jika dibuka dari magic link pada device lain -->
+        <div id="completeEmailContainer" class="hidden flex-col gap-2">
+          <p class="text-sm">Masukkan email Anda untuk menyelesaikan login:</p>
+          <div class="flex gap-2">
+            <input id="completeEmailInput" type="email" placeholder="email@domain.com" class="flex-1 text-sm px-3 py-2 rounded border border-neutral-300 focus:outline-none focus:ring focus:ring-sky-400" />
+            <button id="completeEmailBtn" class="text-sm px-3 py-2 rounded bg-neutral-900 text-white hover:bg-neutral-700">Selesai login</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Firebase config harus diisi user -->
+    <script src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+  </html>

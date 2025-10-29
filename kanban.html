@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kanban - Trello Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body data-page="kanban" class="min-h-screen bg-neutral-50 text-neutral-800">
+    <header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+      <h1 class="text-xl font-semibold">Kanban Board</h1>
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="text-sm text-neutral-600 hover:text-neutral-900">Home</a>
+        <button id="logoutBtn" class="text-sm px-3 py-2 rounded border border-neutral-300 hover:bg-neutral-100">Logout</button>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 pb-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- OPEN column -->
+        <section id="col-open" data-status="open" class="rounded-lg border border-neutral-200 bg-white p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-medium">OPEN</h2>
+            <button class="text-xs px-2 py-1 rounded bg-sky-600 text-white hover:bg-sky-700" data-add="open">Add Task</button>
+          </div>
+          <div class="space-y-2" data-list="open"></div>
+          <div class="mt-3" data-form="open"></div>
+        </section>
+
+        <!-- ON PROGRESS column -->
+        <section id="col-progress" data-status="in_progress" class="rounded-lg border border-neutral-200 bg-white p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-medium">ON PROGRESS</h2>
+            <button class="text-xs px-2 py-1 rounded bg-amber-600 text-white hover:bg-amber-700" data-add="in_progress">Add Task</button>
+          </div>
+          <div class="space-y-2" data-list="in_progress"></div>
+          <div class="mt-3" data-form="in_progress"></div>
+        </section>
+
+        <!-- DONE column -->
+        <section id="col-done" data-status="done" class="rounded-lg border border-neutral-200 bg-white p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-medium">DONE</h2>
+            <button class="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700" data-add="done">Add Task</button>
+          </div>
+          <div class="space-y-2" data-list="done"></div>
+          <div class="mt-3" data-form="done"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Firebase config harus diisi user -->
+    <script src="js/firebase-config.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+  </html>
